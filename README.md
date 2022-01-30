@@ -2,6 +2,35 @@
 
 **Modular** ERC721 with a Built-in Commit-Reveal Scheme.
 
+## Overview
+
+Mints suck...
+
+They're difficult to mint, oft impossible.
+The mint price is fixed - artists and creators don't realize upside.
+
+Is this fixable?
+
+Honestly, not without tradeoffs.
+
+Enigma sacrifices ordering (first-come first-serve) for price-discovery and gas efficiency.
+
+_How_ does this work?
+
+When a mint process begins, Enigma enables a commit session, that lasts for an arbitrarily long period to prevent gas wars. During the commit session, users can `commit()` a hidden price they value the ERC721 at.
+
+
+
+///// TODO
+
+Users must provide a deposit (of amount `minPrice`) to `commit()` in a mint.
+
+If a user gets an allocation for their price and forgo a mint, they suffer a penalty
+on their deposit proportional to how close the `resultPrice` is to their `providedPrice`.
+
+
+
+
 ## Blueprint
 
 ```ml
@@ -18,7 +47,10 @@ src
 
 ## Development
 
-[enigma](https://github.com/abigger87/enigma) is intended to be minimal while also providing backwards compatibility. Thus, both [DappTools](https://dapp.tools/) and [Foundry](https://github.com/gaskonst/foundry) are supported. Installation instructions for both are included below.
+[enigma](https://github.com/abigger87/enigma) is an extensible ERC721 implementation with a commit-reveal scheme built _into_ the ERC721 contract itself. The only contract is located in [src/](./src/) called [Enigma](./src/Enigma.sol).
+
+Both [DappTools](https://dapp.tools/) and [Foundry](https://github.com/gaskonst/foundry) are supported. Installation instructions for both are included below.
+
 #### Install DappTools
 
 Install DappTools using their [installation guide](https://github.com/dapphub/dapptools#installation).
