@@ -28,6 +28,10 @@ abstract contract Enigma {
 
     error InsufficientPrice();
 
+    error InsufficientValue();
+
+    error InvalidAction();
+
     ////////////////////////////////////////////////////
     ///                    EVENTS                    ///
     ////////////////////////////////////////////////////
@@ -71,9 +75,16 @@ abstract contract Enigma {
     /// @dev Mint Start Timestamp
     uint256 public immutable mintStart;
 
+    /// @dev Optional ERC20 Deposit Token
+    address public depositToken;
+
     ////////////////////////////////////////////////////
     ///               CUSTOM STORAGE                 ///
     ////////////////////////////////////////////////////
+
+    /// @dev A rolling variance calculation
+    /// @dev Used for minting price bands
+    uint256 private rollingVariance;
 
     /// @dev The number of commits calculated
     uint256 public count;
@@ -110,7 +121,8 @@ abstract contract Enigma {
       uint256 _minPrice,
       uint256 _commitStart,
       uint256 _revealStart,
-      uint256 _mintStart
+      uint256 _mintStart,
+      address _depositToken
     ) {
         name = _name;
         symbol = _symbol;
@@ -121,6 +133,7 @@ abstract contract Enigma {
         commitStart = _commitStart;
         revealStart = _revealStart;
         mintStart = _mintStart;
+        depositToken = _depositToken;
     }
 
     ////////////////////////////////////////////////////
@@ -157,10 +170,16 @@ abstract contract Enigma {
         // The user has revealed their correct value
         reveals[msg.sender] = appraisal;
 
-        // Add the appraisal to the result value
+        // Add the appraisal to the result value and recalculate variance
+        // Calculation adapted from https://math.stackexchange.com/questions/102978/incremental-computation-of-standard-deviation
         if (count == 0) {
           resultPrice = appraisal;
         } else {
+          // we have two or more values now so we calculate variance
+          uint256 carryTerm = ((count - 1) * rollingVariance) / count;
+          uint256 updateTerm = ((appraisal - resultPrice) ** 2) / (count + 1);
+          rollingVariance = carryTerm + updateTerm;
+          // Update resultPrice (new mean)
           resultPrice = (count * resultPrice + appraisal) / (count + 1);
         }
         count += 1;
@@ -188,12 +207,30 @@ abstract contract Enigma {
         if (msg.value < minPrice || msg.value < resultPrice) revert InsufficientValue();
 
         // Otherwise, we can mint the token
-        
+
     }
 
     /// @notice Forgos a mint
     /// @notice A penalty is assumed if the user's sealed bid was within the minting threshold
     function forgo() external {
+        // Verify during mint phase
+        if (block.timestamp < mintStart) revert WrongPhase();
+
+        // Sload the user's appraisal value
+        uint256 senderAppraisal = reveals[msg.sender];
+
+        // TODO: check if within minting band
+        // TODO: calculate loss penalty
+
+        uint256 amountTransfer = depositAmount;
+
+        // Use Commitments as a mask
+        if (commits[msg.sender] == 0) revert InvalidAction(); 
+        delete commits[msg.sender]
+
+        // Transfer eth or erc20 back to user
+        if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
+        else ERC20(depositToken).transfer(msg.sender, amountTransfer);
 
     }
 
