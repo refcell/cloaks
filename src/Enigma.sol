@@ -20,9 +20,19 @@ abstract contract Enigma {
 
     error NotMinted();
 
+    error InsufficientDeposit();
+
+    error WrongPhase();
+
+    error InvalidHash();
+
     ////////////////////////////////////////////////////
     ///                    EVENTS                    ///
     ////////////////////////////////////////////////////
+
+    event Commit(address indexed from);
+
+    event Reveal(address indexed from, uint256 appraisal);
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
@@ -44,6 +54,28 @@ abstract contract Enigma {
     ///                   STORAGE                    ///
     ////////////////////////////////////////////////////
 
+    /// @dev The deposit amount to place a commitment
+    uint256 public immutable depositAmount;
+
+    // Phase is the minting phase:
+    //  1. Not Open
+    //  2. Commit Phase
+    //  3. Sealed (between commit and reveal)
+    //  4. Reveal and mint phase
+    uint256 public phase;
+
+    /// @dev The number of commits calculated
+    uin256 public count;
+
+    /// @dev The result cumulative sum
+    uint256 public resultPrice;
+
+    /// @dev User Commitments
+    mapping(address => uint256) public commits;
+
+    /// @dev The resulting user appraisals
+    mapping(address => uint256) public appraisals;
+
     mapping(address => uint256) public balanceOf;
 
     mapping(uint256 => address) public ownerOf;
@@ -56,10 +88,68 @@ abstract contract Enigma {
     ///                 CONSTRUCTOR                  ///
     ////////////////////////////////////////////////////
 
-    constructor(string memory _name, string memory _symbol) {
+    constructor(
+      string memory _name,
+      string memory _symbol,
+      uint256 memory _depositAmount
+    ) {
         name = _name;
         symbol = _symbol;
+        depositAmount = _depositAmount;
     }
+
+    ////////////////////////////////////////////////////
+    ///              COMMIT-REVEAL LOGIC             ///
+    ////////////////////////////////////////////////////
+
+    /// @notice Commit is payable to require the deposit amount
+    function commit(bytes32 commitment) external payable {
+        // Make sure the user has placed the deposit amount
+        if (msg.value < depositAmount) revert InsufficientDeposit();
+
+        // Verify during commit phase
+        if (phase != 2) revert WrongPhase();
+
+        // Update a user's commitment if one's outstanding
+        // if (commits[msg.sender] != bytes32(0)) count += 1;
+        commits[msg.sender] = commitment;
+
+        // Emit the commit event
+        emit Commit(msg.sender);
+    }
+
+    /// @notice Revealing a commitment
+    function reveal(uint256 appraisal, bytes32 blindingFactor) external {
+        // Verify during reveal+mint phase
+        if (phase != 4) revert WrongPhase();
+
+        bytes32 senderCommit = commits[msg.sender];
+
+        bytes32 calculatedCommit = keccak256(abi.encodePacked(msg.sender, appraisal, blindingFactor));
+
+        if (senderCommit != calculatedCommit) revert InvalidHash();
+
+        // The user has revealed their correct value
+        appraisals[msg.sender] = appraisal;
+
+        // Add the appraisal to the result value
+        if (count == 0) {
+          resultPrice = appraisal;
+        } else {
+          resultPrice = (count * resultPrice + appraisal) / (count + 1)
+        }
+        count += 1;
+
+        // Emit a Reveal Event
+        emit Reveal(msg.sender, appraisal);
+    }
+
+    ////////////////////////////////////////////////////
+    ///                  MINT LOGIC                  ///
+    ////////////////////////////////////////////////////
+
+    // TODO: Minting when in the distribution phase
+    function mint() external;
 
     ////////////////////////////////////////////////////
     ///                 ERC721 LOGIC                 ///

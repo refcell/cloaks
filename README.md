@@ -111,6 +111,7 @@ Using [foundry.toml](./foundry.toml), Foundry is easily configurable.
 
 # Acknowledgements
 
+- [commit-reveal schemes](https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8)
 - [foundry](https://github.com/gakonst/foundry)
 - [solmate](https://github.com/Rari-Capital/solmate)
 - [forge-std](https://github.com/brockelmore/forge-std)
