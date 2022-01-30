@@ -26,6 +26,8 @@ abstract contract Enigma {
 
     error InvalidHash();
 
+    error InsufficientPrice();
+
     ////////////////////////////////////////////////////
     ///                    EVENTS                    ///
     ////////////////////////////////////////////////////
@@ -51,30 +53,43 @@ abstract contract Enigma {
     function tokenURI(uint256 id) public view virtual returns (string memory);
 
     ////////////////////////////////////////////////////
-    ///                   STORAGE                    ///
+    ///                  IMMUTABLES                  ///
     ////////////////////////////////////////////////////
 
     /// @dev The deposit amount to place a commitment
     uint256 public immutable depositAmount;
 
-    // Phase is the minting phase:
-    //  1. Not Open
-    //  2. Commit Phase
-    //  3. Sealed (between commit and reveal)
-    //  4. Reveal and mint phase
-    uint256 public phase;
+    /// @dev The minimum mint price
+    uint256 public immutable minPrice;
+
+    /// @dev Commit Start Timestamp
+    uint256 public immutable commitStart;
+
+    /// @dev Reveal Start Timestamp
+    uint256 public immutable revealStart;
+
+    /// @dev Mint Start Timestamp
+    uint256 public immutable mintStart;
+
+    ////////////////////////////////////////////////////
+    ///               CUSTOM STORAGE                 ///
+    ////////////////////////////////////////////////////
 
     /// @dev The number of commits calculated
-    uin256 public count;
+    uint256 public count;
 
     /// @dev The result cumulative sum
     uint256 public resultPrice;
 
     /// @dev User Commitments
-    mapping(address => uint256) public commits;
+    mapping(address => bytes32) public commits;
 
     /// @dev The resulting user appraisals
-    mapping(address => uint256) public appraisals;
+    mapping(address => uint256) public reveals;
+
+    ////////////////////////////////////////////////////
+    ///                ERC721 STORAGE                ///
+    ////////////////////////////////////////////////////
 
     mapping(address => uint256) public balanceOf;
 
@@ -91,11 +106,21 @@ abstract contract Enigma {
     constructor(
       string memory _name,
       string memory _symbol,
-      uint256 memory _depositAmount
+      uint256 _depositAmount,
+      uint256 _minPrice,
+      uint256 _commitStart,
+      uint256 _revealStart,
+      uint256 _mintStart
     ) {
         name = _name;
         symbol = _symbol;
+
+        // Store immutables
         depositAmount = _depositAmount;
+        minPrice = _minPrice;
+        commitStart = _commitStart;
+        revealStart = _revealStart;
+        mintStart = _mintStart;
     }
 
     ////////////////////////////////////////////////////
@@ -108,7 +133,7 @@ abstract contract Enigma {
         if (msg.value < depositAmount) revert InsufficientDeposit();
 
         // Verify during commit phase
-        if (phase != 2) revert WrongPhase();
+        if (block.timestamp < commitStart || block.timestamp >= revealStart) revert WrongPhase();
 
         // Update a user's commitment if one's outstanding
         // if (commits[msg.sender] != bytes32(0)) count += 1;
@@ -121,7 +146,7 @@ abstract contract Enigma {
     /// @notice Revealing a commitment
     function reveal(uint256 appraisal, bytes32 blindingFactor) external {
         // Verify during reveal+mint phase
-        if (phase != 4) revert WrongPhase();
+        if (block.timestamp < revealStart || block.timestamp >= mintStart) revert WrongPhase();
 
         bytes32 senderCommit = commits[msg.sender];
 
@@ -130,13 +155,13 @@ abstract contract Enigma {
         if (senderCommit != calculatedCommit) revert InvalidHash();
 
         // The user has revealed their correct value
-        appraisals[msg.sender] = appraisal;
+        reveals[msg.sender] = appraisal;
 
         // Add the appraisal to the result value
         if (count == 0) {
           resultPrice = appraisal;
         } else {
-          resultPrice = (count * resultPrice + appraisal) / (count + 1)
+          resultPrice = (count * resultPrice + appraisal) / (count + 1);
         }
         count += 1;
 
@@ -149,7 +174,35 @@ abstract contract Enigma {
     ////////////////////////////////////////////////////
 
     // TODO: Minting when in the distribution phase
-    function mint() external;
+    function mint() external payable {
+        // Verify during mint phase
+        if (block.timestamp < mintStart) revert WrongPhase();
+
+        // Sload the user's appraisal value
+        uint256 senderAppraisal = reveals[msg.sender];
+
+        // Check their sealed bid is within a minting threshold
+        if (senderAppraisal < minPrice || senderAppraisal < resultPrice) revert InsufficientPrice();
+
+        // Verify they sent at least enough to cover the mint cost
+        if (msg.value < minPrice || msg.value < resultPrice) revert InsufficientValue();
+
+        // Otherwise, we can mint the token
+        
+    }
+
+    /// @notice Forgos a mint
+    /// @notice A penalty is assumed if the user's sealed bid was within the minting threshold
+    function forgo() external {
+
+    }
+
+    /// @notice Allows a user to view if they can mint
+    function canMint() external view returns (bool mintable) {
+      // Sload the user's appraisal value
+      uint256 senderAppraisal = reveals[msg.sender];
+      mintable = senderAppraisal >= minPrice && senderAppraisal >= resultPrice;
+    }
 
     ////////////////////////////////////////////////////
     ///                 ERC721 LOGIC                 ///
