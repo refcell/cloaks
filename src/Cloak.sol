@@ -6,7 +6,7 @@ import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
 
 /// @notice Extensible ERC721 Implementation with a Built-in Commit-Reveal Scheme.
 /// @author andreas <andreas@nascent.xyz>
-abstract contract Enigma {
+abstract contract Cloak {
     ////////////////////////////////////////////////////
     ///                 CUSTOM ERRORS                ///
     ////////////////////////////////////////////////////

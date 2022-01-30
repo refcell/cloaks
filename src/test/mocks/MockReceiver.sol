@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Enigma, ERC721TokenReceiver} from "../../Enigma.sol";
+import {Cloak, ERC721TokenReceiver} from "../../Cloak.sol";
 
 contract ERC721User is ERC721TokenReceiver {
-    Enigma enigma;
+    Cloak cloak;
 
-    constructor(Enigma _enigma) {
-        enigma = _enigma;
+    constructor(Cloak _cloak) {
+        cloak = _cloak;
     }
 
     function onERC721Received(
@@ -20,11 +20,11 @@ contract ERC721User is ERC721TokenReceiver {
     }
 
     function approve(address spender, uint256 tokenId) public virtual {
-        enigma.approve(spender, tokenId);
+        cloak.approve(spender, tokenId);
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
-        enigma.setApprovalForAll(operator, approved);
+        cloak.setApprovalForAll(operator, approved);
     }
 
     function transferFrom(
@@ -32,7 +32,7 @@ contract ERC721User is ERC721TokenReceiver {
         address to,
         uint256 tokenId
     ) public virtual {
-        enigma.transferFrom(from, to, tokenId);
+        cloak.transferFrom(from, to, tokenId);
     }
 
     function safeTransferFrom(
@@ -40,7 +40,7 @@ contract ERC721User is ERC721TokenReceiver {
         address to,
         uint256 tokenId
     ) public virtual {
-        enigma.safeTransferFrom(from, to, tokenId);
+        cloak.safeTransferFrom(from, to, tokenId);
     }
 
     function safeTransferFrom(
@@ -49,6 +49,6 @@ contract ERC721User is ERC721TokenReceiver {
         uint256 tokenId,
         bytes memory data
     ) public {
-        enigma.safeTransferFrom(from, to, tokenId, data);
+        cloak.safeTransferFrom(from, to, tokenId, data);
     }
 }

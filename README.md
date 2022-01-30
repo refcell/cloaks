@@ -1,6 +1,6 @@
-# enigma  • [![tests](https://github.com/abigger87/enigma/actions/workflows/tests.yml/badge.svg)](https://github.com/abigger87/enigma/actions/workflows/tests.yml) [![lints](https://github.com/abigger87/enigma/actions/workflows/lints.yml/badge.svg)](https://github.com/abigger87/enigma/actions/workflows/lints.yml) ![GitHub](https://img.shields.io/github/license/abigger87/enigma) ![GitHub package.json version](https://img.shields.io/github/package-json/v/abigger87/enigma)
+# cloak  • [![tests](https://github.com/abigger87/cloak/actions/workflows/tests.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/tests.yml) [![lints](https://github.com/abigger87/cloak/actions/workflows/lints.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/lints.yml) ![GitHub](https://img.shields.io/github/license/abigger87/cloak) ![GitHub package.json version](https://img.shields.io/github/package-json/v/abigger87/cloak)
 
-**Modular** ERC721 with a Built-in Commit-Reveal Scheme.
+**Extensible** ERC721 with a Built-in Commit-Reveal Scheme.
 
 ## Overview
 
@@ -13,11 +13,11 @@ Is this fixable?
 
 Honestly, not without tradeoffs.
 
-Enigma sacrifices ordering (first-come first-serve) for price-discovery and gas efficiency.
+Cloaks sacrifices ordering (first-come first-serve) for price-discovery and gas efficiency.
 
 _How_ does this work?
 
-When a mint process begins, Enigma enables a commit session, that lasts for an arbitrarily long period to prevent gas wars. During the commit session, users can `commit()` a hidden price they value the ERC721 at.
+When a mint process begins, cloaks enables a commit session, that lasts for an arbitrarily long period to prevent gas wars. During the commit session, users can `commit()` a hidden price they value the ERC721 at.
 
 
 
@@ -41,13 +41,14 @@ lib
 ├─ clones-with-immutable-args — https://github.com/wighawag/clones-with-immutable-args
 src
 ├─ tests
-│  └─ Enigma.t — "Enigma Tests"
-└─ Enigma — "The main Enigma contract"
+│  └─ Cloak.t — "Cloak Tests"
+└─ Cloak — "The main Cloak contract"
 ```
 
 ## Development
 
-[enigma](https://github.com/abigger87/enigma) is an extensible ERC721 implementation with a commit-reveal scheme built _into_ the ERC721 contract itself. The only contract is located in [src/](./src/) called [Enigma](./src/Enigma.sol).
+[Cloak](https://github.com/abigger87/cloak) is an extensible ERC721 implementation with a commit-reveal scheme built _into_ the ERC721 contract itself.
+The only contract is located in [src/](./src/) called [Cloak](./src/Cloak.sol).
 
 Both [DappTools](https://dapp.tools/) and [Foundry](https://github.com/gaskonst/foundry) are supported. Installation instructions for both are included below.
 
@@ -107,7 +108,7 @@ Using [foundry.toml](./foundry.toml), Foundry is easily configurable.
 
 ## License
 
-[AGPL-3.0-only](https://github.com/abigger87/enigma/blob/master/LICENSE)
+[AGPL-3.0-only](https://github.com/abigger87/cloak/blob/master/LICENSE)
 
 # Acknowledgements
 

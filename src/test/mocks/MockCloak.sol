@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Enigma} from "../../Enigma.sol";
+import {Cloak} from "../../Cloak.sol";
 
-/// @notice Mock Enigma
+/// @notice Mock Cloak
 /// @dev Only implement the tokenURI :)
 /// @author andreas <andreas@nascent.xyz>
-contract MockEnigma is Enigma {
+contract MockCloak is Cloak {
     constructor(
       string memory _name,
       string memory _symbol,
@@ -17,7 +17,7 @@ contract MockEnigma is Enigma {
       uint256 _mintStart,
       address _depositToken,
       uint256 _flex
-    ) Enigma(
+    ) Cloak(
       _name,
       _symbol,
       _depositAmount,
