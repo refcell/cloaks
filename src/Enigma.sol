@@ -251,7 +251,7 @@ abstract contract Enigma {
 
         // Use Commitments as a mask
         if (commits[msg.sender] == 0) revert InvalidAction(); 
-        delete commits[msg.sender]
+        delete commits[msg.sender];
 
         // Transfer eth or erc20 back to user
         if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
