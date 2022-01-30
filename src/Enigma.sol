@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
+import {IERC20} from "./interfaces/IERC20.sol";
+import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
+
 /// @notice Extensible ERC721 Implementation with a Built-in Commit-Reveal Scheme.
 /// @author andreas <andreas@nascent.xyz>
 abstract contract Enigma {
@@ -78,6 +81,9 @@ abstract contract Enigma {
     /// @dev Optional ERC20 Deposit Token
     address public depositToken;
 
+    /// @dev Flex is a scaling factor for standard deviation in price band calculation
+    uint256 public flex;
+
     ////////////////////////////////////////////////////
     ///               CUSTOM STORAGE                 ///
     ////////////////////////////////////////////////////
@@ -91,6 +97,9 @@ abstract contract Enigma {
 
     /// @dev The result cumulative sum
     uint256 public resultPrice;
+
+    /// @dev The total token supply
+    uint256 public totalSupply;
 
     /// @dev User Commitments
     mapping(address => bytes32) public commits;
@@ -122,7 +131,8 @@ abstract contract Enigma {
       uint256 _commitStart,
       uint256 _revealStart,
       uint256 _mintStart,
-      address _depositToken
+      address _depositToken,
+      uint256 _flex
     ) {
         name = _name;
         symbol = _symbol;
@@ -134,6 +144,7 @@ abstract contract Enigma {
         revealStart = _revealStart;
         mintStart = _mintStart;
         depositToken = _depositToken;
+        flex = _flex;
     }
 
     ////////////////////////////////////////////////////
@@ -177,7 +188,8 @@ abstract contract Enigma {
         } else {
           // we have two or more values now so we calculate variance
           uint256 carryTerm = ((count - 1) * rollingVariance) / count;
-          uint256 updateTerm = ((appraisal - resultPrice) ** 2) / (count + 1);
+          uint256 diff = appraisal < resultPrice ? resultPrice - appraisal : appraisal - resultPrice;
+          uint256 updateTerm = (diff ** 2) / (count + 1);
           rollingVariance = carryTerm + updateTerm;
           // Update resultPrice (new mean)
           resultPrice = (count * resultPrice + appraisal) / (count + 1);
@@ -192,7 +204,7 @@ abstract contract Enigma {
     ///                  MINT LOGIC                  ///
     ////////////////////////////////////////////////////
 
-    // TODO: Minting when in the distribution phase
+    /// @notice Enables Minting During the Minting Phase
     function mint() external payable {
         // Verify during mint phase
         if (block.timestamp < mintStart) revert WrongPhase();
@@ -206,8 +218,15 @@ abstract contract Enigma {
         // Verify they sent at least enough to cover the mint cost
         if (msg.value < minPrice || msg.value < resultPrice) revert InsufficientValue();
 
-        // Otherwise, we can mint the token
+        // Check that the appraisal is within the price band
+        uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
+        if (senderAppraisal < (resultPrice - flex * stdDev) || senderAppraisal > (resultPrice + flex * stdDev)) {
+          revert InsufficientPrice();
+        }
 
+        // Otherwise, we can mint the token
+        _mint(msg.sender, totalSupply);
+        totalSupply += 1;
     }
 
     /// @notice Forgos a mint
@@ -219,10 +238,16 @@ abstract contract Enigma {
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
 
-        // TODO: check if within minting band
-        // TODO: calculate loss penalty
+        // Calculate a Loss penalty
+        uint256 lossPenalty = 0;
+        uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
+        if (senderAppraisal < (resultPrice - flex * stdDev) || senderAppraisal > (resultPrice + flex * stdDev)) {
+          uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
+          lossPenalty = ((diff / stdDev) * depositAmount) / 100;
+        }
 
-        uint256 amountTransfer = depositAmount;
+        // Return the deposit less the loss penalty
+        uint256 amountTransfer = depositAmount - lossPenalty;
 
         // Use Commitments as a mask
         if (commits[msg.sender] == 0) revert InvalidAction(); 
@@ -230,8 +255,7 @@ abstract contract Enigma {
 
         // Transfer eth or erc20 back to user
         if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
-        else ERC20(depositToken).transfer(msg.sender, amountTransfer);
-
+        else IERC20(depositToken).transfer(msg.sender, amountTransfer);
     }
 
     /// @notice Allows a user to view if they can mint
