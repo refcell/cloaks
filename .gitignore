@@ -1,0 +1,7 @@
+cache/
+out/
+node_modules/*
+node_modules
+.env
+.env.prod
+.vscode/*.log
