@@ -33,7 +33,7 @@ At this time, the mint price is determined by taking the mean of all the reveale
 
 To incentivize bid accuracy, only bids that are in the range of [`resultPrice - flex * stdDev`, `resultPrice + flex * stdDev`], where `flex` is a scalar value set by the Cloak creator.
 
-Anyone who isn't in this range can call `forgo()` to withdraw their deposit token without a penalty.
+Anyone who isn't in this range can call `forgo()` to withdraw their deposit token.
 
 If a user ends up in the range and forgos, they suffer a loss penalty proportional to how close they are to the resulting price.
 Additionally, if a bid is an outlier, a loss penalty is incurred proportional to a Z-Score.
@@ -43,7 +43,7 @@ NOTE: If a commitooor forgets to reveal their sealed bid, they can call `lostRev
 
 ## Issues
 
-- [ ] Outlier Spoofing
+- [x] Outlier Spoofing
 - [x] Deposit Token Frozen without revealing
 - [ ] Loss Penalty is not time weighted to the commitment time
 - [ ] Fix token supply and derive price bands dynamically
