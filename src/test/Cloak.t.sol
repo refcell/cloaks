@@ -18,7 +18,7 @@ contract CloakTest is DSTestPlus {
     uint256 public revealStart = creationTime + 20;
     uint256 public mintStart = creationTime + 30;
 
-    bytes32 public blindingFactor = bytes32("AllTheCoolKidsHateTheDiamondPattern");
+    bytes32 blindingFactor = bytes32("AllTheCoolKidsHateTheDiamondPattern");
 
     function setUp() public {
         cloak = new MockCloak(
