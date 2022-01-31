@@ -14,16 +14,19 @@ contract CloakTest is DSTestPlus {
     MockERC20 public depositToken;
 
     uint256 public creationTime = block.timestamp;
+    uint256 public commitStart = creationTime + 10;
+    uint256 public revealStart = creationTime + 20;
+    uint256 public mintStart = creationTime + 30;
 
     function setUp() public {
         cloak = new MockCloak(
-            "MockCloak",       // string memory _name,
+            "MockCloak",        // string memory _name,
             "EGMA",             // string memory _symbol,
             100,                // uint256 _depositAmount,
             10_000,             // uint256 _minPrice,
-            creationTime + 10,  // uint256 _commitStart,
-            creationTime + 15,  // uint256 _revealStart,
-            creationTime + 20,  // uint256 _mintStart,
+            commitStart,        // uint256 _commitStart,
+            revealStart,        // uint256 _revealStart,
+            mintStart,          // uint256 _mintStart,
             address(0),         // address _depositToken,
             1                   // uint256 _flex
         );
@@ -31,29 +34,35 @@ contract CloakTest is DSTestPlus {
 
     /// @notice Test Commitments
     function testCommit() public {
-        // Expect Revert when we are before the commit phase
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "NonAllocation(uint256,uint64,uint64)",
-                allocationEnd + 1,
-                allocationStart,
-                allocationEnd
-            )
-        );
-        twamBase.deposit(TOKEN_SUPPLY);
+        // Expect Revert when we don't send at least the depositAmount
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InsufficientDeposit()"))));
+        cloak.commit();
 
-        // Jump to after the commit period
-        vm.warp(allocationEnd + 1);
+        // Expect Revert when we are not in the commit phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.commit();
+
+        // Jump to after the commit phase
+        vm.warp(revealStart);
+
+        // Expect Revert when we are not in the commit phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.commit();
+
+        // Jump to during the commit phase
+        vm.warp(commitStart);
+
+        // TODO: should successfully commit
 
         // Expect Revert when we are after the allocation period
-        vm.expectRevert(
-            abi.encodeWithSignature(
-                "NonAllocation(uint256,uint64,uint64)",
-                allocationEnd + 1,
-                allocationStart,
-                allocationEnd
-            )
-        );
-        twamBase.deposit(TOKEN_SUPPLY);
+        // vm.expectRevert(
+        //     abi.encodeWithSignature(
+        //         "NonAllocation(uint256,uint64,uint64)",
+        //         allocationEnd + 1,
+        //         allocationStart,
+        //         allocationEnd
+        //     )
+        // );
+        // twamBase.deposit(TOKEN_SUPPLY);
     }
 }
