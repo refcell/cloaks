@@ -11,25 +11,39 @@ The mint price is fixed - artists and creators don't realize upside.
 
 Is this fixable?
 
-Honestly, not without tradeoffs.
+The answer: not without tradeoffs.
 
-Cloaks sacrifices ordering (first-come first-serve) for price-discovery and gas efficiency.
+To satisfy this, Cloaks sacrifices ordering (first-come first-serve) for price-discovery and gas efficiency.
 
 _How_ does this work?
 
-When a mint process begins, cloaks enables a commit session, that lasts for an arbitrarily long period to prevent gas wars. During the commit session, users can `commit()` a hidden price they value the ERC721 at.
+Cloaks start with a commit phase, that lasts for an arbitrarily long period to prevent gas wars.
+During the commit phase, anyone can call `commit()`, providing a sealed bid price (appraisal) and sending `depositAmount` of a token to the Cloak.
+
+This is possible by using a commitment scheme where the sealed value is hashed and revealed in the next phase.
+Read more on commitment schemes [here](https://medium.com/swlh/exploring-commit-reveal-schemes-on-ethereum-c4ff5a777db8). 
+
+Once the commit phase ends, everyone who commited values then calls `reveal()`, providing the bid price. Once this function is called, the sender's sealed bid is becomes public.
+
+NOTE: Commitments can only be made during the commit phase.
+
+Once the reveal phase ends, Cloak enters the third and last phase - the mint phase.
+
+At this time, the mint price is determined by taking the mean of all the revealed bids. The final mint price is the max of either this calculated price or the `minPrice` set by the Cloak creator.
+
+To incentivize bid accuracy, only bids that are in the range of [`resultPrice - flex * stdDev`, `resultPrice + flex * stdDev`], where `flex` is a scalar value set by the Cloak creator.
+
+Anyone who isn't in this range can call `forgo()` to withdraw their deposit token without a penalty.
+
+If a user ends up in the range and forgos, they suffer a loss penalty proportional to how close they are to the resulting price.
 
 
+## Issues
 
-///// TODO
-
-Users must provide a deposit (of amount `minPrice`) to `commit()` in a mint.
-
-If a user gets an allocation for their price and forgo a mint, they suffer a penalty
-on their deposit proportional to how close the `resultPrice` is to their `providedPrice`.
-
-
-
+- [ ] Outlier Spoofing
+- [ ] Deposit Token Frozen without revealing
+- [ ] Loss Penalty is not time weighted to the commitment time
+- [ ] Fix token supply and derive price bands dynamically
 
 ## Blueprint
 
