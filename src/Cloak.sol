@@ -90,7 +90,7 @@ abstract contract Cloak {
 
     /// @dev A rolling variance calculation
     /// @dev Used for minting price bands
-    uint256 private rollingVariance;
+    uint256 public rollingVariance;
 
     /// @dev The number of commits calculated
     uint256 public count;
@@ -179,6 +179,7 @@ abstract contract Cloak {
         if (senderCommit != calculatedCommit) revert InvalidHash();
 
         // The user has revealed their correct value
+        delete commits[msg.sender];
         reveals[msg.sender] = appraisal;
 
         // Add the appraisal to the result value and recalculate variance
@@ -224,6 +225,10 @@ abstract contract Cloak {
           revert InsufficientPrice();
         }
 
+        // Use Reveals as a mask
+        if (reveals[msg.sender] == 0) revert InvalidAction(); 
+        delete reveals[msg.sender];
+
         // Otherwise, we can mint the token
         _mint(msg.sender, totalSupply);
         totalSupply += 1;
@@ -249,9 +254,9 @@ abstract contract Cloak {
         // Return the deposit less the loss penalty
         uint256 amountTransfer = depositAmount - lossPenalty;
 
-        // Use Commitments as a mask
-        if (commits[msg.sender] == 0) revert InvalidAction(); 
-        delete commits[msg.sender];
+        // Use Reveals as a mask
+        if (reveals[msg.sender] == 0) revert InvalidAction(); 
+        delete reveals[msg.sender];
 
         // Transfer eth or erc20 back to user
         if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
