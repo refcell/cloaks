@@ -154,10 +154,15 @@ abstract contract Cloak {
     /// @notice Commit is payable to require the deposit amount
     function commit(bytes32 commitment) external payable {
         // Make sure the user has placed the deposit amount
-        if (msg.value < depositAmount) revert InsufficientDeposit();
-
+        if (depositToken == address(0) && msg.value < depositAmount) revert InsufficientDeposit();
+        
         // Verify during commit phase
         if (block.timestamp < commitStart || block.timestamp >= revealStart) revert WrongPhase();
+        
+        // Transfer the deposit token into this contract
+        if (depositToken != address(0)) {
+          IERC20(depositToken).transferFrom(msg.sender, address(this), depositAmount);
+        }
 
         // Update a user's commitment if one's outstanding
         // if (commits[msg.sender] != bytes32(0)) count += 1;
@@ -252,7 +257,7 @@ abstract contract Cloak {
         // Calculate a Loss penalty
         uint256 lossPenalty = 0;
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        if (senderAppraisal < (resultPrice - flex * stdDev) || senderAppraisal > (resultPrice + flex * stdDev)) {
+        if (senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
           uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
           lossPenalty = ((diff / stdDev) * depositAmount) / 100;
         }
@@ -262,8 +267,22 @@ abstract contract Cloak {
 
         // Transfer eth or erc20 back to user
         delete reveals[msg.sender];
-        if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
+        if(depositToken == address(0)) msg.sender.call{value: amountTransfer}("");
         else IERC20(depositToken).transfer(msg.sender, amountTransfer);
+    }
+
+    /// @notice Allows a user to withdraw their deposit on reveal elusion
+    function lostReveal() external {
+        // Verify after the reveal phase
+        if (block.timestamp < mintStart) revert WrongPhase();
+
+        // Prevent withdrawals unless reveals is empty and commits isn't
+        if (reveals[msg.sender] != 0 || commits[msg.sender] == 0) revert InvalidAction();
+    
+        // Then we can release deposit
+        delete commits[msg.sender];
+        if(depositToken == address(0)) msg.sender.call{value: depositAmount}("");
+        else IERC20(depositToken).transfer(msg.sender, depositAmount);
     }
 
     /// @notice Allows a user to view if they can mint

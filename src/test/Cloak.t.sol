@@ -356,4 +356,29 @@ contract CloakTest is DSTestPlus {
         assert(cloak.totalSupply() == 0);
         vm.stopPrank();
     }
+
+    ////////////////////////////////////////////////////
+    ///                  LOST REVEALS                ///
+    ////////////////////////////////////////////////////
+
+    /// @notice Tests deposit withdrawals on reveal miss
+    function testLostReveal() public {
+        // Commit
+        bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment);
+        vm.warp(revealStart);
+
+        // Should fail to withdraw since still reveal phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.lostReveal(); 
+
+        // Skip reveal and withdraw
+        vm.warp(mintStart);
+        cloak.lostReveal();
+
+        // We shouldn't be able to withdraw again since commitment is gone
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
+        cloak.lostReveal(); 
+    }
 }
