@@ -43,7 +43,7 @@ NOTE: If a commitooor forgets to reveal their sealed bid, they can call `lostRev
 
 ## Issues
 
-- [ ] Outlier Spoofing
+- [x] Outlier Spoofing
 - [x] Deposit Token Frozen without revealing
 - [ ] Loss Penalty is not time weighted to the commitment time
 - [ ] Fix token supply and derive price bands dynamically
