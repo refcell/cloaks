@@ -257,7 +257,7 @@ abstract contract Cloak {
         // Calculate a Loss penalty
         uint256 lossPenalty = 0;
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        if (senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
+        if (stdDev != 0 && senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
           uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
           lossPenalty = ((diff / stdDev) * depositAmount) / 100;
         }
