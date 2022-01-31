@@ -10,29 +10,45 @@ import {MockERC20} from "@solmate/test/utils/mocks/MockERC20.sol";
 contract CloakTest is DSTestPlus {
     MockCloak cloak;
 
-    // Cloak Arguments
+    // Cloak Arguments and Metadata
+    string public name = "MockCloak";
+    string public symbol = "EGMA";
     uint256 public depositAmount = 100;
-    uint256 public minPrice = 10_000;
-    MockERC20 public depositToken;
+    uint256 public minPrice = 10;
     uint256 public creationTime = block.timestamp;
     uint256 public commitStart = creationTime + 10;
     uint256 public revealStart = creationTime + 20;
     uint256 public mintStart = creationTime + 30;
+    address public depositToken = address(0);
+    uint256 public flex = 1;
 
     bytes32 public blindingFactor = bytes32(bytes("AllTheCoolKidsHateTheDiamondPattern"));
 
     function setUp() public {
         cloak = new MockCloak(
-            "MockCloak",        // string memory _name,
-            "EGMA",             // string memory _symbol,
+            name,               // string memory _name,
+            symbol,             // string memory _symbol,
             depositAmount,      // uint256 _depositAmount,
             minPrice,           // uint256 _minPrice,
             commitStart,        // uint256 _commitStart,
             revealStart,        // uint256 _revealStart,
             mintStart,          // uint256 _mintStart,
-            address(0),         // address _depositToken,
-            1                   // uint256 _flex
+            depositToken,       // address _depositToken,
+            flex                // uint256 _flex
         );
+    }
+
+    /// @notice Tests metadata and immutable config
+    function testConfig() public {
+        assert(keccak256(abi.encodePacked((cloak.name()))) == keccak256(abi.encodePacked((name))));
+        assert(keccak256(abi.encodePacked((cloak.symbol()))) == keccak256(abi.encodePacked((symbol))));
+        assert(cloak.depositAmount() == depositAmount);
+        assert(cloak.minPrice() == minPrice);
+        assert(cloak.commitStart() == commitStart);
+        assert(cloak.revealStart() == revealStart);
+        assert(cloak.mintStart() == mintStart);
+        assert(cloak.depositToken() == depositToken);
+        assert(cloak.flex() == flex);
     }
 
     /// @notice Test Commitments
@@ -98,7 +114,7 @@ contract CloakTest is DSTestPlus {
     }
 
     /// @notice Test Multiple Reveals
-    function testMultipleReveals(uint256 invalidConcealedBid) public {
+    function testMultipleReveals() public {
         // Create a Successful Commitment and Reveal
         bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
         vm.warp(commitStart);
@@ -145,5 +161,35 @@ contract CloakTest is DSTestPlus {
         
         // Stop Hoax (prank under-the-hood)
         vm.stopPrank();
+    }
+
+    /// @notice Test Minting
+    function testMinting() public {
+        // Commit+Reveal 1
+        bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(10), blindingFactor);
+
+        // Commit+Reveal 2
+        startHoax(address(1337), address(1337), type(uint256).max);
+        bytes32 commitment2 = keccak256(abi.encodePacked(address(1337), uint256(20), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment2);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(20), blindingFactor);
+        vm.stopPrank();
+
+        // Commit+Reveal 3
+        startHoax(address(420), address(420), type(uint256).max);
+        bytes32 commitment3 = keccak256(abi.encodePacked(address(420), uint256(30), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment3);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(30), blindingFactor);
+        vm.stopPrank();
+
+        // Test Minting at a result price of 20
     }
 }
