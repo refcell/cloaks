@@ -88,6 +88,10 @@ abstract contract Cloak {
     ///               CUSTOM STORAGE                 ///
     ////////////////////////////////////////////////////
 
+    /// @dev The outlier scale for loss penalty
+    /// @dev Loss penalty is taken with OUTLIER_FLEX * error as a percent
+    uint256 public constant OUTLIER_FLEX = 5;
+
     /// @dev A rolling variance calculation
     /// @dev Used for minting price bands
     uint256 public rollingVariance;
@@ -223,7 +227,8 @@ abstract contract Cloak {
         if (resultPrice < minPrice) finalValue = minPrice;
 
         // Verify they sent at least enough to cover the mint cost
-        if (msg.value < finalValue) revert InsufficientValue();
+        if (depositToken == address(0) && msg.value < finalValue) revert InsufficientValue();
+        if (depositToken != address(0)) IERC20(depositToken).transferFrom(msg.sender, address(this), finalValue);
 
         // Use Reveals as a mask
         if (reveals[msg.sender] == 0) revert InvalidAction(); 
@@ -236,6 +241,10 @@ abstract contract Cloak {
 
         // Delete revealed value to prevent double spend
         delete reveals[msg.sender];
+
+        // Send deposit back to the minter
+        if(depositToken == address(0)) msg.sender.call{value: depositAmount}("");
+        else IERC20(depositToken).transfer(msg.sender, depositAmount);
 
         // Otherwise, we can mint the token
         _mint(msg.sender, totalSupply);
@@ -257,12 +266,19 @@ abstract contract Cloak {
         // Calculate a Loss penalty
         uint256 lossPenalty = 0;
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
+        uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
         if (stdDev != 0 && senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
-          uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
           lossPenalty = ((diff / stdDev) * depositAmount) / 100;
         }
 
+        // Increase loss penalty if it's an outlier using Z-scores
+        if (stdDev != 0) {
+          // Take a penalty of OUTLIER_FLEX * error as a percent
+          lossPenalty += OUTLIER_FLEX * (diff / stdDev) * depositAmount / 100;
+        }
+
         // Return the deposit less the loss penalty
+        // NOTE: we can let this error on underflow since that means Cloak should keep the full deposit
         uint256 amountTransfer = depositAmount - lossPenalty;
 
         // Transfer eth or erc20 back to user
