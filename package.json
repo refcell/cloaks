@@ -3,7 +3,7 @@
   "description": "Extensible ERC721 with a Built-in Commit-Reveal Scheme",
   "author": "Andreas Bigger <andreas@nascent.xyz>",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "files": [
     "src/**/*.sol"
   ],
