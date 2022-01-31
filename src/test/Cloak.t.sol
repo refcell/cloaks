@@ -18,6 +18,8 @@ contract CloakTest is DSTestPlus {
     uint256 public revealStart = creationTime + 20;
     uint256 public mintStart = creationTime + 30;
 
+    bytes32 public blindingFactor = bytes32("AllTheCoolKidsHateTheDiamondPattern");
+
     function setUp() public {
         cloak = new MockCloak(
             "MockCloak",        // string memory _name,
@@ -34,20 +36,22 @@ contract CloakTest is DSTestPlus {
 
     /// @notice Test Commitments
     function testCommit() public {
+        bytes32 public commitment = keccak256(abi.encodePacked(msg.sender, 10, blindingFactor));
+
         // Expect Revert when we don't send at least the depositAmount
         vm.expectRevert(abi.encodePacked(bytes4(keccak256("InsufficientDeposit()"))));
-        cloak.commit();
+        cloak.commit(commitment);
 
         // Expect Revert when we are not in the commit phase
         vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
-        cloak.commit();
+        cloak.commit(commitment);
 
         // Jump to after the commit phase
         vm.warp(revealStart);
 
         // Expect Revert when we are not in the commit phase
         vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
-        cloak.commit();
+        cloak.commit(commitment);
 
         // Jump to during the commit phase
         vm.warp(commitStart);

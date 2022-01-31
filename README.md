@@ -1,6 +1,6 @@
 # cloak  • [![tests](https://github.com/abigger87/cloak/actions/workflows/tests.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/tests.yml) [![lints](https://github.com/abigger87/cloak/actions/workflows/lints.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/lints.yml) ![GitHub](https://img.shields.io/github/license/abigger87/cloak) ![GitHub package.json version](https://img.shields.io/github/package-json/v/abigger87/cloak)
 
-**Extensible** ERC721 with a Built-in Commit-Reveal Scheme.
+**Extensible** ERC721 with a Built-in Commitment Scheme.
 
 ## Overview
 
