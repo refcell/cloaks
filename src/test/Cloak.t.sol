@@ -51,6 +51,10 @@ contract CloakTest is DSTestPlus {
         assert(cloak.flex() == flex);
     }
 
+    ////////////////////////////////////////////////////
+    ///                 COMMIT LOGIC                 ///
+    ////////////////////////////////////////////////////
+
     /// @notice Test Commitments
     function testCommit() public {
         bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
@@ -76,6 +80,10 @@ contract CloakTest is DSTestPlus {
         // Successfully Commit
         cloak.commit{value: depositAmount}(commitment);
     }
+
+    ////////////////////////////////////////////////////
+    ///                 REVEAL LOGIC                 ///
+    ////////////////////////////////////////////////////
 
     /// @notice Test Reveals
     function testReveal(uint256 invalidConcealedBid) public {
@@ -163,8 +171,41 @@ contract CloakTest is DSTestPlus {
         vm.stopPrank();
     }
 
+    ////////////////////////////////////////////////////
+    ///                  MINT LOGIC                  ///
+    ////////////////////////////////////////////////////
+
     /// @notice Test Minting
     function testMinting() public {
+        // Commit+Reveal 1
+        bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(10), blindingFactor);
+
+        // Minting fails outside mint phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.mint();
+
+        // Mint should fail without value
+        vm.warp(mintStart);
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InsufficientValue()"))));
+        cloak.mint();
+
+        // We should be able to mint
+        cloak.mint{value: 10}();
+        assert(cloak.reveals(address(this)) == 0);
+        assert(cloak.balanceOf(address(this)) == 1);
+        assert(cloak.totalSupply() == 1);
+
+        // Double mints are prevented with Reveals Mask
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
+        cloak.mint{value: 10}();
+    }
+
+    /// @notice Test Multiple Mints
+    function testMultipleMints() public {
         // Commit+Reveal 1
         bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
         vm.warp(commitStart);
@@ -190,6 +231,129 @@ contract CloakTest is DSTestPlus {
         cloak.reveal(uint256(30), blindingFactor);
         vm.stopPrank();
 
-        // Test Minting at a result price of 20
+        // Minting fails outside mint phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.mint();
+
+        // Mint should fail without value
+        vm.warp(mintStart);
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InsufficientValue()"))));
+        cloak.mint();
+
+        // We should be able to mint
+        cloak.mint{value: 20}();
+        assert(cloak.reveals(address(this)) == 0);
+        assert(cloak.balanceOf(address(this)) == 1);
+        assert(cloak.totalSupply() == 1);
+
+        // Double mints are prevented with Reveals Mask
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
+        cloak.mint{value: 20}();
+
+        // Next user mints
+        startHoax(address(1337), address(1337), type(uint256).max);
+        vm.warp(mintStart);
+        cloak.mint{value: 20}();
+        assert(cloak.balanceOf(address(1337)) == 1);
+        assert(cloak.totalSupply() == 2);
+        vm.stopPrank();
+
+        // Third user mints
+        startHoax(address(420), address(420), type(uint256).max);
+        vm.warp(mintStart);
+        cloak.mint{value: 20}();
+        assert(cloak.balanceOf(address(420)) == 1);
+        assert(cloak.totalSupply() == 3);
+        vm.stopPrank();
+    }
+
+    ////////////////////////////////////////////////////
+    ///                  FORGO LOGIC                 ///
+    ////////////////////////////////////////////////////
+
+    /// @notice Test Forgos
+    function testForgo() public {
+        // Commit+Reveal
+        bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(10), blindingFactor);
+
+        // Forgo fails outside mint phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.forgo();
+
+        // We should be able to forgo
+        vm.warp(mintStart);
+        assert(cloak.reveals(address(this)) != 0);
+        cloak.forgo();
+        assert(cloak.reveals(address(this)) == 0);
+        assert(cloak.balanceOf(address(this)) == 0);
+        assert(cloak.totalSupply() == 0);
+
+        // Double forgos are prevented with Reveals Mask
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
+        cloak.forgo();
+    }
+
+        /// @notice Test Multiple Forgos
+    function testMultipleForgos() public {
+        // Commit+Reveal 1
+        bytes32 commitment = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(10), blindingFactor);
+
+        // Commit+Reveal 2
+        startHoax(address(1337), address(1337), type(uint256).max);
+        bytes32 commitment2 = keccak256(abi.encodePacked(address(1337), uint256(20), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment2);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(20), blindingFactor);
+        vm.stopPrank();
+
+        // Commit+Reveal 3
+        startHoax(address(420), address(420), type(uint256).max);
+        bytes32 commitment3 = keccak256(abi.encodePacked(address(420), uint256(30), blindingFactor));
+        vm.warp(commitStart);
+        cloak.commit{value: depositAmount}(commitment3);
+        vm.warp(revealStart);
+        cloak.reveal(uint256(30), blindingFactor);
+        vm.stopPrank();
+
+        // Forgo fails outside mint phase
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.forgo();
+
+        // We should be able to forgo
+        vm.warp(mintStart);
+        assert(cloak.reveals(address(this)) != 0);
+        cloak.forgo();
+        assert(cloak.reveals(address(this)) == 0);
+        assert(cloak.balanceOf(address(this)) == 0);
+        assert(cloak.totalSupply() == 0);
+
+        // Double forgos are prevented with Reveals Mask
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
+        cloak.forgo();
+
+        // Next user forgos
+        startHoax(address(1337), address(1337), type(uint256).max);
+        vm.warp(mintStart);
+        cloak.forgo();
+        assert(cloak.balanceOf(address(1337)) == 0);
+        assert(cloak.totalSupply() == 0);
+        vm.stopPrank();
+
+        // Third user forgos
+        startHoax(address(420), address(420), type(uint256).max);
+        vm.warp(mintStart);
+        cloak.forgo();
+        assert(cloak.balanceOf(address(420)) == 0);
+        assert(cloak.totalSupply() == 0);
+        vm.stopPrank();
     }
 }

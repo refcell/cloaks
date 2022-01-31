@@ -213,11 +213,15 @@ abstract contract Cloak {
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
 
-        // Check their sealed bid is within a minting threshold
-        if (senderAppraisal < minPrice || senderAppraisal < resultPrice) revert InsufficientPrice();
+        // Result value
+        uint256 finalValue = resultPrice;
+        if (resultPrice < minPrice) finalValue = minPrice;
 
         // Verify they sent at least enough to cover the mint cost
-        if (msg.value < minPrice || msg.value < resultPrice) revert InsufficientValue();
+        if (msg.value < finalValue) revert InsufficientValue();
+
+        // Use Reveals as a mask
+        if (reveals[msg.sender] == 0) revert InvalidAction(); 
 
         // Check that the appraisal is within the price band
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
@@ -225,8 +229,7 @@ abstract contract Cloak {
           revert InsufficientPrice();
         }
 
-        // Use Reveals as a mask
-        if (reveals[msg.sender] == 0) revert InvalidAction(); 
+        // Delete revealed value to prevent double spend
         delete reveals[msg.sender];
 
         // Otherwise, we can mint the token
@@ -240,6 +243,9 @@ abstract contract Cloak {
         // Verify during mint phase
         if (block.timestamp < mintStart) revert WrongPhase();
 
+        // Use Reveals as a mask
+        if (reveals[msg.sender] == 0) revert InvalidAction(); 
+        
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
 
@@ -254,11 +260,8 @@ abstract contract Cloak {
         // Return the deposit less the loss penalty
         uint256 amountTransfer = depositAmount - lossPenalty;
 
-        // Use Reveals as a mask
-        if (reveals[msg.sender] == 0) revert InvalidAction(); 
-        delete reveals[msg.sender];
-
         // Transfer eth or erc20 back to user
+        delete reveals[msg.sender];
         if(depositToken == address(0)) msg.sender.call{value:amountTransfer}("");
         else IERC20(depositToken).transfer(msg.sender, amountTransfer);
     }
@@ -267,7 +270,8 @@ abstract contract Cloak {
     function canMint() external view returns (bool mintable) {
       // Sload the user's appraisal value
       uint256 senderAppraisal = reveals[msg.sender];
-      mintable = senderAppraisal >= minPrice && senderAppraisal >= resultPrice;
+      uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
+      mintable = senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev);
     }
 
     ////////////////////////////////////////////////////
