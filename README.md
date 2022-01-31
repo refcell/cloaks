@@ -1,4 +1,4 @@
-# cloak  • [![tests](https://github.com/abigger87/cloak/actions/workflows/tests.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/tests.yml) [![lints](https://github.com/abigger87/cloak/actions/workflows/lints.yml/badge.svg)](https://github.com/abigger87/cloak/actions/workflows/lints.yml) ![GitHub](https://img.shields.io/github/license/abigger87/cloak) ![GitHub package.json version](https://img.shields.io/github/package-json/v/abigger87/cloak)
+# cloaks  • [![tests](https://github.com/abigger87/cloaks/actions/workflows/tests.yml/badge.svg)](https://github.com/abigger87/cloaks/actions/workflows/tests.yml) [![lints](https://github.com/abigger87/cloaks/actions/workflows/lints.yml/badge.svg)](https://github.com/abigger87/cloaks/actions/workflows/lints.yml) ![GitHub](https://img.shields.io/github/license/abigger87/cloaks) ![GitHub package.json version](https://img.shields.io/github/package-json/v/abigger87/cloaks)
 
 **Extensible** ERC721 with a Built-in Commitment Scheme.
 
@@ -47,7 +47,7 @@ src
 
 ## Development
 
-[Cloak](https://github.com/abigger87/cloak) is an extensible ERC721 implementation with a commit-reveal scheme built _into_ the ERC721 contract itself.
+A [Cloak](https://github.com/abigger87/cloaks) is an extensible ERC721 implementation with a commit-reveal scheme built _into_ the ERC721 contract itself.
 The only contract is located in [src/](./src/) called [Cloak](./src/Cloak.sol).
 
 Both [DappTools](https://dapp.tools/) and [Foundry](https://github.com/gaskonst/foundry) are supported. Installation instructions for both are included below.
@@ -108,7 +108,7 @@ Using [foundry.toml](./foundry.toml), Foundry is easily configurable.
 
 ## License
 
-[AGPL-3.0-only](https://github.com/abigger87/cloak/blob/master/LICENSE)
+[AGPL-3.0-only](https://github.com/abigger87/cloaks/blob/master/LICENSE)
 
 # Acknowledgements
 

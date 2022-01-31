@@ -1,5 +1,5 @@
 {
-  "name": "cloak",
+  "name": "cloaks",
   "description": "Extensible ERC721 with a Built-in Commit-Reveal Scheme",
   "author": "Andreas Bigger <andreas@nascent.xyz>",
   "license": "AGPL-3.0-only",
@@ -9,7 +9,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/abigger87/cloak.git"
+    "url": "git+https://github.com/abigger87/cloaks.git"
   },
   "devDependencies": {
     "prettier": "^2.3.1",
