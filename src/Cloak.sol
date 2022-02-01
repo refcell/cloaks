@@ -282,14 +282,16 @@ abstract contract Cloak {
         // Use Reveals as a mask
         if (reveals[msg.sender] == 0) revert InvalidAction(); 
         
+        uint256 _resultPrice = resultPrice;
+
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
 
         // Calculate a Loss penalty
         uint256 lossPenalty = 0;
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
-        if (stdDev != 0 && senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
+        uint256 diff = senderAppraisal < _resultPrice ? _resultPrice - senderAppraisal : senderAppraisal - _resultPrice;
+        if (stdDev != 0 && senderAppraisal >= (_resultPrice - flex * stdDev) && senderAppraisal <= (_resultPrice + flex * stdDev)) {
           lossPenalty = ((diff / stdDev) * depositAmount) / 100;
         }
 
