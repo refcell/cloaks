@@ -244,8 +244,9 @@ abstract contract Cloak {
         uint256 senderAppraisal = reveals[msg.sender];
 
         // Result value
-        uint256 finalValue = resultPrice;
-        if (resultPrice < minPrice) finalValue = minPrice;
+        uint256 _resultPrice = resultPrice; 
+        uint256 finalValue = _resultPrice;
+        if (_resultPrice < minPrice) finalValue = minPrice;
 
         // Verify they sent at least enough to cover the mint cost
         if (depositToken == address(0) && msg.value < finalValue) revert InsufficientValue();
@@ -256,7 +257,7 @@ abstract contract Cloak {
 
         // Check that the appraisal is within the price band
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        if (senderAppraisal < (resultPrice - flex * stdDev) || senderAppraisal > (resultPrice + flex * stdDev)) {
+        if (senderAppraisal < (_resultPrice - flex * stdDev) || senderAppraisal > (_resultPrice + flex * stdDev)) {
           revert InsufficientPrice();
         }
 
