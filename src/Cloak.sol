@@ -212,13 +212,15 @@ abstract contract Cloak {
         if (count == 0) {
           resultPrice = appraisal;
         } else {
+          uint256 _resultPrice = resultPrice;
+
           // we have two or more values now so we calculate variance
           uint256 carryTerm = ((count - 1) * rollingVariance) / count;
-          uint256 diff = appraisal < resultPrice ? resultPrice - appraisal : appraisal - resultPrice;
+          uint256 diff = appraisal < _resultPrice ? _resultPrice - appraisal : appraisal - _resultPrice;
           uint256 updateTerm = (diff ** 2) / (count + 1);
           rollingVariance = carryTerm + updateTerm;
           // Update resultPrice (new mean)
-          resultPrice = (count * resultPrice + appraisal) / (count + 1);
+          resultPrice = (count * _resultPrice + appraisal) / (count + 1);
         }
 
         unchecked {
@@ -242,8 +244,9 @@ abstract contract Cloak {
         uint256 senderAppraisal = reveals[msg.sender];
 
         // Result value
-        uint256 finalValue = resultPrice;
-        if (resultPrice < minPrice) finalValue = minPrice;
+        uint256 _resultPrice = resultPrice; 
+        uint256 finalValue = _resultPrice;
+        if (_resultPrice < minPrice) finalValue = minPrice;
 
         // Verify they sent at least enough to cover the mint cost
         if (depositToken == address(0) && msg.value < finalValue) revert InsufficientValue();
@@ -254,7 +257,7 @@ abstract contract Cloak {
 
         // Check that the appraisal is within the price band
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        if (senderAppraisal < (resultPrice - flex * stdDev) || senderAppraisal > (resultPrice + flex * stdDev)) {
+        if (senderAppraisal < (_resultPrice - flex * stdDev) || senderAppraisal > (_resultPrice + flex * stdDev)) {
           revert InsufficientPrice();
         }
 
@@ -266,10 +269,8 @@ abstract contract Cloak {
         else IERC20(depositToken).transfer(msg.sender, depositAmount);
 
         // Otherwise, we can mint the token
-        _mint(msg.sender, totalSupply);
-
         unchecked {
-          totalSupply += 1;
+           _mint(msg.sender, totalSupply++);
         }
     }
 
@@ -282,14 +283,16 @@ abstract contract Cloak {
         // Use Reveals as a mask
         if (reveals[msg.sender] == 0) revert InvalidAction(); 
         
+        uint256 _resultPrice = resultPrice;
+
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
 
         // Calculate a Loss penalty
         uint256 lossPenalty = 0;
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
-        uint256 diff = senderAppraisal < resultPrice ? resultPrice - senderAppraisal : senderAppraisal - resultPrice;
-        if (stdDev != 0 && senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev)) {
+        uint256 diff = senderAppraisal < _resultPrice ? _resultPrice - senderAppraisal : senderAppraisal - _resultPrice;
+        if (stdDev != 0 && senderAppraisal >= (_resultPrice - flex * stdDev) && senderAppraisal <= (_resultPrice + flex * stdDev)) {
           lossPenalty = ((diff / stdDev) * depositAmount) / 100;
         }
 
