@@ -204,7 +204,10 @@ abstract contract Cloak {
           // Update resultPrice (new mean)
           resultPrice = (count * resultPrice + appraisal) / (count + 1);
         }
-        count += 1;
+
+        unchecked {
+          count += 1;          
+        }
 
         // Emit a Reveal Event
         emit Reveal(msg.sender, appraisal);
@@ -248,7 +251,10 @@ abstract contract Cloak {
 
         // Otherwise, we can mint the token
         _mint(msg.sender, totalSupply);
-        totalSupply += 1;
+
+        unchecked {
+          totalSupply += 1;
+        }
     }
 
     /// @notice Forgos a mint
