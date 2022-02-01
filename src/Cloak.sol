@@ -212,13 +212,15 @@ abstract contract Cloak {
         if (count == 0) {
           resultPrice = appraisal;
         } else {
+          uint256 _resultPrice = resultPrice;
+
           // we have two or more values now so we calculate variance
           uint256 carryTerm = ((count - 1) * rollingVariance) / count;
-          uint256 diff = appraisal < resultPrice ? resultPrice - appraisal : appraisal - resultPrice;
+          uint256 diff = appraisal < _resultPrice ? _resultPrice - appraisal : appraisal - _resultPrice;
           uint256 updateTerm = (diff ** 2) / (count + 1);
           rollingVariance = carryTerm + updateTerm;
           // Update resultPrice (new mean)
-          resultPrice = (count * resultPrice + appraisal) / (count + 1);
+          resultPrice = (count * _resultPrice + appraisal) / (count + 1);
         }
 
         unchecked {
