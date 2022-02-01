@@ -4,8 +4,25 @@ pragma solidity >=0.8.0;
 import {IERC20} from "./interfaces/IERC20.sol";
 import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
 
-/// @notice Extensible ERC721 Implementation with a Built-in Commit-Reveal Scheme.
+
+/// ⠄⠄⠄⠄⠄⠄⠄⠄⢀⣀⣤⣴⣶⠞⠛⢶⣤⣄⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄ ///
+/// ⠄⠄⠄⠄⠄⣠⡶⠿⠿⠿⠿⠟⠁⣰⠇⣈⠻⣿⣿⣷⣶⣤⣀⠄⠄⠄⠄⠄ ///
+/// ⠄⠄⠄⢠⣾⣿⡗⢿⣶⣶⣤⣴⣾⠟⢠⡏⠄⠄⠈⠙⠿⣿⣿⣷⣦⠄⠄⠄ ///
+/// ⠄⠄⢠⣿⣿⣿⠇⢶⣤⣀⡺⠿⠋⣠⡾⠄⠄⢤⣶⣤⣄⠈⠛⢿⣿⣷⡄⠄ ///
+/// ⠄⢀⣿⣿⣿⣣⣿⣷⣌⡛⢿⣿⣾⡟⠁⢤⣤⣀⠙⢿⣿⣷⣄⠄⠙⢿⣷⠄ ///
+/// ⠄⣼⣿⣿⣳⣿⣿⣿⣿⣿⣷⣦⢭⣶⣇⠄⠻⣿⣧⡀⠙⢿⣿⣷⣦⡀⠙⠇ ///
+/// ⢰⣿⣿⣳⣿⣿⣻⣿⢿⣿⣿⣿⣿⣿⣿⣷⡀⠹⣿⣿⣄⠄⠹⣿⣿⣴⡄⠄ ///
+/// ⢸⡿⣱⣿⣿⣏⣿⣿⢸⣿⣿⣧⣿⣿⣿⣿⣷⡀⠘⣿⣿⣦⠄⠈⢿⡿⣱⣿ ///
+/// ⠘⣵⣿⣿⣿⣸⣿⣿⢾⣿⣿⣿⢸⣿⣿⣿⣿⣷⠄⡜⣿⣿⣷⠄⠄⠁⣿⡿ ///
+/// ⢸⣶⣍⢿⢧⣿⣿⣿⢸⣿⣿⣿⢸⣿⣿⣿⣿⣿⣇⠘⡜⣿⣷⣴⣦⣀⠘⠄ ///
+/// ⠄⠻⣿⢇⣾⣿⣿⣿⢸⣿⣿⣿⡯⣿⣿⣿⣿⣿⣿⡆⠘⡽⡟⢫⣴⣶⡆⠄ ///
+/// ⠄⠄⠙⢷⣿⡭⠡⠆⢸⣿⣿⣿⡇⠿⣿⣿⣿⣿⠛⠻⠄⢫⠄⣀⡹⣿⡇⠄ ///
+/// ⠄⠄⠄⠄⠙⠃⠄⢀⣚⣭⣭⣭⡍⠄⣿⣿⣿⡿⢟⣛⣂⠄⣼⡿⣣⡟⠄⠄ ///
+/// ⠄⠄⠄⠄⠄⠄⠉⠙⠻⣿⣿⣿⣁⣀⣈⣩⣭⣶⣿⣿⣿⣷⣭⡶⠋⠄⠄⠄ ///
+
+/// @title Cloak
 /// @author andreas <andreas@nascent.xyz>
+/// @dev Extensible ERC721 Implementation with a Built-in Commit-Reveal Scheme.
 abstract contract Cloak {
     ////////////////////////////////////////////////////
     ///                 CUSTOM ERRORS                ///
@@ -79,10 +96,10 @@ abstract contract Cloak {
     uint256 public immutable mintStart;
 
     /// @dev Optional ERC20 Deposit Token
-    address public depositToken;
+    address public immutable depositToken;
 
     /// @dev Flex is a scaling factor for standard deviation in price band calculation
-    uint256 public flex;
+    uint256 public immutable flex;
 
     ////////////////////////////////////////////////////
     ///               CUSTOM STORAGE                 ///
