@@ -266,10 +266,8 @@ abstract contract Cloak {
         else IERC20(depositToken).transfer(msg.sender, depositAmount);
 
         // Otherwise, we can mint the token
-        _mint(msg.sender, totalSupply);
-
         unchecked {
-          totalSupply += 1;
+           _mint(msg.sender, totalSupply++);
         }
     }
 
