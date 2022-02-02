@@ -319,11 +319,20 @@ abstract contract Cloak {
 
         // Prevent withdrawals unless reveals is empty and commits isn't
         if (reveals[msg.sender] != 0 || commits[msg.sender] == 0) revert InvalidAction();
-    
-        // Then we can release deposit
+
+        // Prevent double spends
         delete commits[msg.sender];
-        if(depositToken == address(0)) msg.sender.call{value: depositAmount}("");
-        else IERC20(depositToken).transfer(msg.sender, depositAmount);
+
+        // Then we can release deposit
+        uint256 lossyDeposit = depositAmount;
+        // This shan't underflow
+        unchecked {
+          lossyDeposit = lossyDeposit - ((lossyDeposit * 5_000) / 10_000);
+        }
+
+        // Transfer back
+        if(depositToken == address(0)) msg.sender.call{value: lossyDeposit}("");
+        else IERC20(depositToken).transfer(msg.sender, lossyDeposit);
     }
 
     /// @notice Allows a user to view if they can mint
