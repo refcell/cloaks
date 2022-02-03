@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC721TokenReceiver} from "./interfaces/IERC721TokenReceiver.sol";
+
 import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
 
 /// ⠄⠄⠄⠄⠄⠄⠄⠄⢀⣀⣤⣴⣶⠞⠛⢶⣤⣄⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄ ///
@@ -346,14 +348,16 @@ abstract contract Cloak {
       mintable = senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev);
     }
 
-    ////////////////////////////////////////////////////
-    ///                 ERC721 LOGIC                 ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                ERC721 LOGIC                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf[id];
 
-        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+        if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
+          revert NotAuthorized();
+        }
 
         getApproved[id] = spender;
 
@@ -371,20 +375,17 @@ abstract contract Cloak {
         address to,
         uint256 id
     ) public virtual {
-        require(from == ownerOf[id], "WRONG_FROM");
+        if (from != ownerOf[id]) revert WrongFrom();
 
-        require(to != address(0), "INVALID_RECIPIENT");
+        if (to == address(0)) revert InvalidRecipient();
 
-        require(
-            msg.sender == from || msg.sender == getApproved[id] || isApprovedForAll[from][msg.sender],
-            "NOT_AUTHORIZED"
-        );
+        if (msg.sender != from && msg.sender != getApproved[id] && !isApprovedForAll[from][msg.sender]) {
+          revert NotAuthorized();
+        }
 
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
+        // Underflow impossible due to check for ownership
         unchecked {
             balanceOf[from]--;
-
             balanceOf[to]++;
         }
 
@@ -402,12 +403,13 @@ abstract contract Cloak {
     ) public virtual {
         transferFrom(from, to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") !=
+          IERC721TokenReceiver.onERC721Received.selector
+        ) {
+          revert UnsafeRecipient();
+        }
     }
 
     function safeTransferFrom(
@@ -418,28 +420,29 @@ abstract contract Cloak {
     ) public virtual {
         transferFrom(from, to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) !=
+          IERC721TokenReceiver.onERC721Received.selector
+        ) {
+          revert UnsafeRecipient();
+        }
     }
 
-    ////////////////////////////////////////////////////
-    ///                 ERC165 LOGIC                 ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                ERC165 LOGIC                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
             interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+            interfaceId == 0x5b5e139f;   // ERC165 Interface ID for ERC721Metadata
     }
 
-    ////////////////////////////////////////////////////
-    ///                INTERNAL LOGIC                ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                               INTERNAL LOGIC                            ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function _mint(address to, uint256 id) internal virtual {
         if (to == address(0)) revert InvalidRecipient();
@@ -473,20 +476,20 @@ abstract contract Cloak {
         emit Transfer(owner, address(0), id);
     }
 
-    ////////////////////////////////////////////////////
-    ///             INTERNAL SAFE LOGIC              ///
-    ////////////////////////////////////////////////////
-
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                            INTERNAL SAFE LOGIC                          ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function _safeMint(address to, uint256 id) internal virtual {
         _mint(to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") !=
+          IERC721TokenReceiver.onERC721Received.selector
+        ) {
+          revert UnsafeRecipient();
+        }
     }
 
     function _safeMint(
@@ -496,22 +499,12 @@ abstract contract Cloak {
     ) internal virtual {
         _mint(to, id);
 
-        require(
-            to.code.length == 0 ||
-                ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) ==
-                ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) !=
+          IERC721TokenReceiver.onERC721Received.selector
+        ) {
+          revert UnsafeRecipient();
+        }
     }
-}
-
-/// @notice A generic interface for a contract which properly accepts ERC721 tokens.
-/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
-interface ERC721TokenReceiver {
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 id,
-        bytes calldata data
-    ) external returns (bytes4);
 }
