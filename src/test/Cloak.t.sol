@@ -20,7 +20,7 @@ contract CloakTest is DSTestPlus {
     uint256 public revealStart = creationTime + 20;
     uint256 public mintStart = creationTime + 30;
     address public depositToken = address(0);
-    uint256 public flex = 1;
+    uint256 public flex = 2;
 
     bytes32 public blindingFactor = bytes32(bytes("AllTheCoolKidsHateTheDiamondPattern"));
 
@@ -147,8 +147,8 @@ contract CloakTest is DSTestPlus {
         // Validate Price and Variance Calculations
         assert(cloak.resultPrice() == uint256(15));
         assert(cloak.count() == uint256(2));
-        assert(cloak.rollingVariance() == uint256(50));
-        
+        assert(cloak.rollingVariance() == uint256(25));
+
         // Stop Hoax (prank under-the-hood)
         vm.stopPrank();
 
@@ -165,8 +165,8 @@ contract CloakTest is DSTestPlus {
         // Validate Price and Variance Calculations
         assert(cloak.resultPrice() == uint256(20));
         assert(cloak.count() == uint256(3));
-        assert(cloak.rollingVariance() == uint256(100));
-        
+        assert(cloak.rollingVariance() == uint256(66));
+
         // Stop Hoax (prank under-the-hood)
         vm.stopPrank();
     }

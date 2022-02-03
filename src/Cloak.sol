@@ -175,10 +175,10 @@ abstract contract Cloak {
     function commit(bytes32 commitment) external payable {
         // Make sure the user has placed the deposit amount
         if (depositToken == address(0) && msg.value < depositAmount) revert InsufficientDeposit();
-        
+
         // Verify during commit phase
         if (block.timestamp < commitStart || block.timestamp >= revealStart) revert WrongPhase();
-        
+
         // Transfer the deposit token into this contract
         if (depositToken != address(0)) {
           IERC20(depositToken).transferFrom(msg.sender, address(this), depositAmount);
@@ -212,19 +212,22 @@ abstract contract Cloak {
         if (count == 0) {
           resultPrice = appraisal;
         } else {
-          uint256 _resultPrice = resultPrice;
+          uint256 resultPrice_ = resultPrice;
+          uint256 newResultPrice = (count * resultPrice_ + appraisal) / (count + 1);
 
-          // we have two or more values now so we calculate variance
-          uint256 carryTerm = ((count - 1) * rollingVariance) / count;
-          uint256 diff = appraisal < _resultPrice ? _resultPrice - appraisal : appraisal - _resultPrice;
-          uint256 updateTerm = (diff ** 2) / (count + 1);
-          rollingVariance = carryTerm + updateTerm;
+          uint256 carryTerm = count * rollingVariance;
+          uint256 clearingDiff = resultPrice_ > newResultPrice ?  resultPrice_ - newResultPrice : newResultPrice - resultPrice_;
+          uint256 deviationUpdate = count * (clearingDiff ** 2);
+          uint256 meanUpdate = appraisal < newResultPrice ? newResultPrice - appraisal : appraisal - newResultPrice;
+          uint256 updateTerm = meanUpdate ** 2;
+          rollingVariance = (deviationUpdate + carryTerm + updateTerm) / (count + 1);
+
           // Update resultPrice (new mean)
-          resultPrice = (count * _resultPrice + appraisal) / (count + 1);
+          resultPrice = newResultPrice;
         }
 
         unchecked {
-          count += 1;          
+          count += 1;
         }
 
         // Emit a Reveal Event
@@ -244,7 +247,7 @@ abstract contract Cloak {
         uint256 senderAppraisal = reveals[msg.sender];
 
         // Result value
-        uint256 _resultPrice = resultPrice; 
+        uint256 _resultPrice = resultPrice;
         uint256 finalValue = _resultPrice;
         if (_resultPrice < minPrice) finalValue = minPrice;
 
@@ -253,7 +256,7 @@ abstract contract Cloak {
         if (depositToken != address(0)) IERC20(depositToken).transferFrom(msg.sender, address(this), finalValue);
 
         // Use Reveals as a mask
-        if (reveals[msg.sender] == 0) revert InvalidAction(); 
+        if (reveals[msg.sender] == 0) revert InvalidAction();
 
         // Check that the appraisal is within the price band
         uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
@@ -270,7 +273,7 @@ abstract contract Cloak {
 
         // Otherwise, we can mint the token
         unchecked {
-           _mint(msg.sender, totalSupply++);
+            _mint(msg.sender, totalSupply++);
         }
     }
 
@@ -282,7 +285,7 @@ abstract contract Cloak {
 
         // Use Reveals as a mask
         if (reveals[msg.sender] == 0) revert InvalidAction(); 
-        
+
         uint256 _resultPrice = resultPrice;
 
         // Sload the user's appraisal value
