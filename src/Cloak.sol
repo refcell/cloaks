@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC721TokenReceiver} from "./interfaces/IERC721TokenReceiver.sol";
+
 import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
 
 /// ⠄⠄⠄⠄⠄⠄⠄⠄⢀⣀⣤⣴⣶⠞⠛⢶⣤⣄⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄ ///
@@ -23,9 +25,9 @@ import {FixedPointMathLib} from "@solmate/utils/FixedPointMathLib.sol";
 /// @author andreas <andreas@nascent.xyz>
 /// @dev Extensible ERC721 Implementation with a Built-in Commit-Reveal Scheme.
 abstract contract Cloak {
-    ////////////////////////////////////////////////////
-    ///                 CUSTOM ERRORS                ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                               CUSTOM ERRORS                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     error NotAuthorized();
 
@@ -51,9 +53,9 @@ abstract contract Cloak {
 
     error InvalidAction();
 
-    ////////////////////////////////////////////////////
-    ///                    EVENTS                    ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                   EVENTS                                ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     event Commit(address indexed from);
 
@@ -65,9 +67,9 @@ abstract contract Cloak {
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
-    ////////////////////////////////////////////////////
-    ///                   METADATA                   ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                  METADATA                               ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     string public name;
 
@@ -75,9 +77,10 @@ abstract contract Cloak {
 
     function tokenURI(uint256 id) public view virtual returns (string memory);
 
-    ////////////////////////////////////////////////////
-    ///                  IMMUTABLES                  ///
-    ////////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                  IMMUTABLES                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     /// @dev The deposit amount to place a commitment
     uint256 public immutable depositAmount;
@@ -100,9 +103,9 @@ abstract contract Cloak {
     /// @dev Flex is a scaling factor for standard deviation in price band calculation
     uint256 public immutable flex;
 
-    ////////////////////////////////////////////////////
-    ///               CUSTOM STORAGE                 ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                CUSTOM STORAGE                           ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     /// @dev The outlier scale for loss penalty
     /// @dev Loss penalty is taken with OUTLIER_FLEX * error as a percent
@@ -127,9 +130,9 @@ abstract contract Cloak {
     /// @dev The resulting user appraisals
     mapping(address => uint256) public reveals;
 
-    ////////////////////////////////////////////////////
-    ///                ERC721 STORAGE                ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                ERC721 STORAGE                           ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     mapping(address => uint256) public balanceOf;
 
@@ -139,9 +142,9 @@ abstract contract Cloak {
 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
 
-    ////////////////////////////////////////////////////
-    ///                 CONSTRUCTOR                  ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                 CONSTRUCTOR                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     constructor(
       string memory _name,
@@ -167,9 +170,9 @@ abstract contract Cloak {
         flex = _flex;
     }
 
-    ////////////////////////////////////////////////////
-    ///              COMMIT-REVEAL LOGIC             ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                              COMMITMENT LOGIC                           ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     /// @notice Commit is payable to require the deposit amount
     function commit(bytes32 commitment) external payable {
@@ -234,9 +237,9 @@ abstract contract Cloak {
         emit Reveal(msg.sender, appraisal);
     }
 
-    ////////////////////////////////////////////////////
-    ///                  MINT LOGIC                  ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                 MINT LOGIC                              ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     /// @notice Enables Minting During the Minting Phase
     function mint() external payable {
@@ -346,14 +349,14 @@ abstract contract Cloak {
       mintable = senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev);
     }
 
-    ////////////////////////////////////////////////////
-    ///                 ERC721 LOGIC                 ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                ERC721 LOGIC                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf[id];
 
-        if (msg.sender != owner || !isApprovedForAll[owner][msg.sender]) {
+        if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) {
           revert NotAuthorized();
         }
 
@@ -377,7 +380,7 @@ abstract contract Cloak {
 
         if (to == address(0)) revert InvalidRecipient();
 
-        if (msg.sender != from || msg.sender != getApproved[id] || !isApprovedForAll[from][msg.sender]) {
+        if (msg.sender != from && msg.sender != getApproved[id] && !isApprovedForAll[from][msg.sender]) {
           revert NotAuthorized();
         }
 
@@ -402,9 +405,9 @@ abstract contract Cloak {
         transferFrom(from, to, id);
 
         if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") !=
-          ERC721TokenReceiver.onERC721Received.selector
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") !=
+          IERC721TokenReceiver.onERC721Received.selector
         ) {
           revert UnsafeRecipient();
         }
@@ -419,28 +422,28 @@ abstract contract Cloak {
         transferFrom(from, to, id);
 
         if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) !=
-          ERC721TokenReceiver.onERC721Received.selector
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) !=
+          IERC721TokenReceiver.onERC721Received.selector
         ) {
           revert UnsafeRecipient();
         }
     }
 
-    ////////////////////////////////////////////////////
-    ///                 ERC165 LOGIC                 ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                                ERC165 LOGIC                             ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function supportsInterface(bytes4 interfaceId) public pure virtual returns (bool) {
         return
             interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
             interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+            interfaceId == 0x5b5e139f;   // ERC165 Interface ID for ERC721Metadata
     }
 
-    ////////////////////////////////////////////////////
-    ///                INTERNAL LOGIC                ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                               INTERNAL LOGIC                            ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function _mint(address to, uint256 id) internal virtual {
         if (to == address(0)) revert InvalidRecipient();
@@ -474,17 +477,17 @@ abstract contract Cloak {
         emit Transfer(owner, address(0), id);
     }
 
-    ////////////////////////////////////////////////////
-    ///             INTERNAL SAFE LOGIC              ///
-    ////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+    ///                            INTERNAL SAFE LOGIC                          ///
+    ///////////////////////////////////////////////////////////////////////////////
 
     function _safeMint(address to, uint256 id) internal virtual {
         _mint(to, id);
 
         if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") !=
-          ERC721TokenReceiver.onERC721Received.selector
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, "") !=
+          IERC721TokenReceiver.onERC721Received.selector
         ) {
           revert UnsafeRecipient();
         }
@@ -498,22 +501,11 @@ abstract contract Cloak {
         _mint(to, id);
 
         if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) !=
-          ERC721TokenReceiver.onERC721Received.selector
+          to.code.length != 0 &&
+          IERC721TokenReceiver(to).onERC721Received(msg.sender, address(0), id, data) !=
+          IERC721TokenReceiver.onERC721Received.selector
         ) {
           revert UnsafeRecipient();
         }
     }
-}
-
-/// @notice A generic interface for a contract which properly accepts ERC721 tokens.
-/// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
-interface ERC721TokenReceiver {
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 id,
-        bytes calldata data
-    ) external returns (bytes4);
 }

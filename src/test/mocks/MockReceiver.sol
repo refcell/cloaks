@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {Cloak, ERC721TokenReceiver} from "../../Cloak.sol";
+import {Cloak} from "../../Cloak.sol";
+import {IERC721TokenReceiver} from "../../interfaces/IERC721TokenReceiver.sol";
 
-contract ERC721User is ERC721TokenReceiver {
+contract ERC721User is IERC721TokenReceiver {
     Cloak cloak;
 
     constructor(Cloak _cloak) {
@@ -16,7 +17,7 @@ contract ERC721User is ERC721TokenReceiver {
         uint256,
         bytes calldata
     ) public virtual override returns (bytes4) {
-        return ERC721TokenReceiver.onERC721Received.selector;
+        return IERC721TokenReceiver.onERC721Received.selector;
     }
 
     function approve(address spender, uint256 tokenId) public virtual {
