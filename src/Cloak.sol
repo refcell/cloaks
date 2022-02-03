@@ -353,9 +353,7 @@ abstract contract Cloak {
     function approve(address spender, uint256 id) public virtual {
         address owner = ownerOf[id];
 
-        if (msg.sender != owner || !isApprovedForAll[owner][msg.sender]) {
-          revert NotAuthorized();
-        }
+        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
 
         getApproved[id] = spender;
 
@@ -373,17 +371,20 @@ abstract contract Cloak {
         address to,
         uint256 id
     ) public virtual {
-        if (from != ownerOf[id]) revert WrongFrom();
+        require(from == ownerOf[id], "WRONG_FROM");
 
-        if (to == address(0)) revert InvalidRecipient();
+        require(to != address(0), "INVALID_RECIPIENT");
 
-        if (msg.sender != from || msg.sender != getApproved[id] || !isApprovedForAll[from][msg.sender]) {
-          revert NotAuthorized();
-        }
+        require(
+            msg.sender == from || msg.sender == getApproved[id] || isApprovedForAll[from][msg.sender],
+            "NOT_AUTHORIZED"
+        );
 
-        // Underflow impossible due to check for ownership
+        // Underflow of the sender's balance is impossible because we check for
+        // ownership above and the recipient's balance can't realistically overflow.
         unchecked {
             balanceOf[from]--;
+
             balanceOf[to]++;
         }
 
@@ -401,13 +402,12 @@ abstract contract Cloak {
     ) public virtual {
         transferFrom(from, to, id);
 
-        if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") !=
-          ERC721TokenReceiver.onERC721Received.selector
-        ) {
-          revert UnsafeRecipient();
-        }
+        require(
+            to.code.length == 0 ||
+                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, "") ==
+                ERC721TokenReceiver.onERC721Received.selector,
+            "UNSAFE_RECIPIENT"
+        );
     }
 
     function safeTransferFrom(
@@ -418,13 +418,12 @@ abstract contract Cloak {
     ) public virtual {
         transferFrom(from, to, id);
 
-        if (
-          to.code.length != 0 ||
-          ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) !=
-          ERC721TokenReceiver.onERC721Received.selector
-        ) {
-          revert UnsafeRecipient();
-        }
+        require(
+            to.code.length == 0 ||
+                ERC721TokenReceiver(to).onERC721Received(msg.sender, from, id, data) ==
+                ERC721TokenReceiver.onERC721Received.selector,
+            "UNSAFE_RECIPIENT"
+        );
     }
 
     ////////////////////////////////////////////////////
