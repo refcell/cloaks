@@ -2,12 +2,12 @@
   "extends": "solhint:recommended",
   "plugins": ["prettier"],
   "rules": {
-    "code-complexity": ["error", 8],
+    "code-complexity": ["error", 9],
     "compiler-version": ["error", ">=0.5.8"],
     "const-name-snakecase": "off",
     "constructor-syntax": "error",
     "func-visibility": ["error", { "ignoreConstructors": true }],
-    "max-line-length": ["error", 120],
+    "max-line-length": ["error", 160],
     "not-rely-on-time": "off",
     "prettier/prettier": [
       "error",
