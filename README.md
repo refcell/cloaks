@@ -31,7 +31,7 @@ Once the reveal phase ends, Cloak enters the third and last phase - the mint pha
 
 At this time, the mint price is determined by taking the mean of all the revealed bids. The final mint price is the max of either this calculated price or the `minPrice` set by the Cloak creator.
 
-To incentivize bid accuracy, only bids that are in the range of [`resultPrice - flex * stdDev`, `resultPrice + flex * stdDev`], where `flex` is a scalar value set by the Cloak creator.
+To incentivize bid accuracy, only bids that are in the range of [`resultPrice - flex * stdDev`, `resultPrice + flex * stdDev`] are permitted to mint; `flex` is a scalar value set by the Cloak creator.
 
 Anyone who isn't in this range can call `forgo()` to withdraw their deposit token.
 
