@@ -10,11 +10,15 @@ import {MockERC20} from "@solmate/test/utils/mocks/MockERC20.sol";
 contract CloakTest is DSTestPlus {
     MockCloak cloak;
 
+    bytes32 public blindingFactor = bytes32(bytes("AllTheCoolKidsHateTheDiamondPattern"));
+
+
     // Cloak Arguments and Metadata
     string public name = "MockCloak";
     string public symbol = "EGMA";
     uint256 public depositAmount = 100;
-    uint256 public minPrice = 10;
+    uint256 public minPrice = 0;
+    bytes32 public commitMinPrice = keccak256(abi.encodePacked(address(this), uint256(10), blindingFactor));
     uint256 public creationTime = block.timestamp;
     uint256 public commitStart = creationTime + 10;
     uint256 public revealStart = creationTime + 20;
@@ -22,14 +26,12 @@ contract CloakTest is DSTestPlus {
     address public depositToken = address(0);
     uint256 public flex = 2;
 
-    bytes32 public blindingFactor = bytes32(bytes("AllTheCoolKidsHateTheDiamondPattern"));
-
     function setUp() public {
         cloak = new MockCloak(
             name,               // string memory _name,
             symbol,             // string memory _symbol,
             depositAmount,      // uint256 _depositAmount,
-            minPrice,           // uint256 _minPrice,
+            commitMinPrice,     // bytes32 _minPrice,
             commitStart,        // uint256 _commitStart,
             revealStart,        // uint256 _revealStart,
             mintStart,          // uint256 _mintStart,
@@ -44,12 +46,14 @@ contract CloakTest is DSTestPlus {
         assert(keccak256(abi.encodePacked((cloak.symbol()))) == keccak256(abi.encodePacked((symbol))));
         assert(cloak.depositAmount() == depositAmount);
         assert(cloak.minPrice() == minPrice);
+        assert(cloak.commits(address(this)) == commitMinPrice);
         assert(cloak.commitStart() == commitStart);
         assert(cloak.revealStart() == revealStart);
         assert(cloak.mintStart() == mintStart);
         assert(cloak.depositToken() == depositToken);
         assert(cloak.flex() == flex);
     }
+
 
     ////////////////////////////////////////////////////
     ///                 COMMIT LOGIC                 ///
@@ -174,6 +178,7 @@ contract CloakTest is DSTestPlus {
     ////////////////////////////////////////////////////
     ///                  MINT LOGIC                  ///
     ////////////////////////////////////////////////////
+    
 
     /// @notice Test Minting
     function testMinting() public {
@@ -381,4 +386,36 @@ contract CloakTest is DSTestPlus {
         vm.expectRevert(abi.encodePacked(bytes4(keccak256("InvalidAction()"))));
         cloak.lostReveal(); 
     }
+
+
+    ////////////////////////////////////////////////////
+    ///                  PRICE REVEAL                ///
+    ////////////////////////////////////////////////////
+
+    /// @notice Tests revealing minimum mint price after reveal
+    function testPriceReveal() public {
+
+        /// @notice Only after reveal phase
+        vm.warp(commitStart);
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("WrongPhase()"))));
+        cloak.priceReveal(uint256(10), blindingFactor);
+
+        /// @notice Only original deployer can reveal
+        startHoax(address(1337), address(1337), type(uint256).max);
+        vm.warp(revealStart);
+        vm.expectRevert(abi.encodePacked(bytes4(keccak256("NotAuthorized()"))));        
+        cloak.priceReveal(uint256(10), blindingFactor);
+        vm.stopPrank();
+
+        /// @notice minPrice is eq to zero before reveal
+        vm.warp(commitStart);
+        assert(cloak.minPrice() == 0);
+
+        /// @notice Set minPrice to 10
+        vm.warp(revealStart);
+        cloak.priceReveal(uint256(10), blindingFactor);
+        assert(cloak.minPrice() == 10);
+
+    }
+
 }

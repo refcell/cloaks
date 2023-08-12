@@ -11,7 +11,7 @@ contract MockCloak is Cloak {
       string memory _name,
       string memory _symbol,
       uint256 _depositAmount,
-      uint256 _minPrice,
+      bytes32 _minPrice,
       uint256 _commitStart,
       uint256 _revealStart,
       uint256 _mintStart,

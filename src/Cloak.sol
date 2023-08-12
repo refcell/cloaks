@@ -86,7 +86,6 @@ abstract contract Cloak {
     uint256 public immutable depositAmount;
 
     /// @dev The minimum mint price
-    uint256 public immutable minPrice;
 
     /// @dev Commit Start Timestamp
     uint256 public immutable commitStart;
@@ -106,6 +105,8 @@ abstract contract Cloak {
     ///////////////////////////////////////////////////////////////////////////////
     ///                                CUSTOM STORAGE                           ///
     ///////////////////////////////////////////////////////////////////////////////
+
+    uint256 public minPrice;
 
     /// @dev The outlier scale for loss penalty
     /// @dev Loss penalty is taken with OUTLIER_FLEX * error as a percent
@@ -150,7 +151,7 @@ abstract contract Cloak {
       string memory _name,
       string memory _symbol,
       uint256 _depositAmount,
-      uint256 _minPrice,
+      bytes32 _minPrice,
       uint256 _commitStart,
       uint256 _revealStart,
       uint256 _mintStart,
@@ -162,12 +163,17 @@ abstract contract Cloak {
 
         // Store immutables
         depositAmount = _depositAmount;
-        minPrice = _minPrice;
         commitStart = _commitStart;
         revealStart = _revealStart;
         mintStart = _mintStart;
         depositToken = _depositToken;
         flex = _flex;
+
+        // Set for price reveal (avoid storing deployer address)
+        minPrice = 0;
+
+        // WARNING: Stops deployer of a contract from commiting anything until post-reveal phase
+        commits[msg.sender] = _minPrice;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -245,6 +251,9 @@ abstract contract Cloak {
     function mint() external payable {
         // Verify during mint phase
         if (block.timestamp < mintStart) revert WrongPhase();
+
+        // If deployer forgets to reveal before mint, set to variant pricing
+        if (minPrice == 0) minPrice = resultPrice;
 
         // Sload the user's appraisal value
         uint256 senderAppraisal = reveals[msg.sender];
@@ -347,6 +356,14 @@ abstract contract Cloak {
       uint256 senderAppraisal = reveals[msg.sender];
       uint256 stdDev = FixedPointMathLib.sqrt(rollingVariance);
       mintable = senderAppraisal >= (resultPrice - flex * stdDev) && senderAppraisal <= (resultPrice + flex * stdDev);
+    }
+
+    /// @notice Deployer reveals price only before minting
+    function priceReveal(uint256 price, bytes32 blindingFactor) external {
+      if (block.timestamp < revealStart || block.timestamp >= mintStart) revert WrongPhase();
+      bytes32 calculatedCommit = keccak256(abi.encodePacked(msg.sender, price, blindingFactor));
+      if (commits[msg.sender] != calculatedCommit) revert NotAuthorized();
+      minPrice = price;
     }
 
     ///////////////////////////////////////////////////////////////////////////////
